@@ -1,7 +1,6 @@
 name: CI
 
-# このリポジトリは docker-compose / Makefile / Python(locust) / シェルスクリプトの
-# 構成ファイル集なので、CI では「各成果物が壊れていないか」を検証する。
+# Validate configuration and builds, and exercise unit and contract tests.
 
 on:
   push:
@@ -9,20 +8,20 @@ on:
   pull_request:
     branches: [main]
 
-# 同一ブランチで新しい push があったら古い実行はキャンセル
+# Cancel older runs when the same branch receives another push.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # ---- docker-compose 定義の文法チェック ----
+  # ---- Validate Docker Compose definitions ----
   compose:
     name: Validate docker-compose
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # .env が無くても compose が解決できるよう example をコピー
+      # Use the example environment so Compose can resolve its settings.
       - name: Prepare .env
         run: cp .env.example .env
 
@@ -35,7 +34,7 @@ jobs:
             echo "::endgroup::"
           done
 
-  # ---- Python(locust) の lint / 文法チェック ----
+  # ---- Python lint and syntax checks ----
   python:
     name: Lint Python
     runs-on: ubuntu-latest
@@ -58,9 +57,9 @@ jobs:
       - name: Ruff lint
         run: ruff check locust/bin apps/backend kafka/bridge
 
-  # ---- シェルスクリプトの構文チェック ----
-  # スクリプトは #!/bin/zsh（Makefile も SHELL := /bin/zsh）。
-  # shellcheck は zsh 非対応なので、正しいインタプリタ zsh の構文チェックを使う。
+  # ---- Shell syntax checks ----
+  # Scripts and Makefiles use zsh; ShellCheck does not support it.
+  # Check syntax with the actual interpreter instead.
   shell:
     name: Syntax check (zsh)
     runs-on: ubuntu-latest
@@ -76,7 +75,7 @@ jobs:
             zsh -n "$f"
           done
 
-  # ---- TypeScript(apps/frontend) の型チェック ----
+  # ---- Frontend TypeScript checks ----
   typescript:
     name: Typecheck frontend
     runs-on: ubuntu-latest
@@ -95,7 +94,7 @@ jobs:
         working-directory: apps/frontend
         run: npm run typecheck
 
-  # ---- Dockerfile の lint と build 確認 ----
+  # ---- Dockerfile lint and build checks ----
   docker:
     name: Lint & build Dockerfile
     runs-on: ubuntu-latest
@@ -121,8 +120,96 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: ${{ matrix.dockerfile }}
-          # ARG のバージョン固定など軽微な指摘は失敗扱いにしない
+          # Only errors fail this check; minor warnings remain informational.
           failure-threshold: error
 
       - name: Build image
         run: docker build -t ${{ matrix.tag }} ${{ matrix.context }}
+
+  # Each matrix entry runs on its own runner, with no dependencies on other jobs.
+  tests:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      # Keep the other suites running if one fails.
+      fail-fast: false
+      matrix:
+        include:
+          - suite: backend-unit
+            name: Backend unit tests
+            target: pytest:test
+            report: pytest/report
+            setup: ''
+            logs: ''
+            cleanup: ''
+          - suite: frontend-unit
+            name: Frontend unit tests
+            target: vitest:test
+            report: vitest/report
+            setup: ''
+            logs: ''
+            cleanup: ''
+          - suite: consumer-contract
+            name: Consumer contract tests
+            target: vitest:contract-test
+            report: vitest/report-contract
+            setup: |
+              make specmatic:mock-up
+              curl --fail --silent --show-error --retry 30 --retry-delay 2 \
+                --retry-all-errors --retry-max-time 120 --max-time 5 \
+                http://localhost:9091/health
+            logs: docker compose -p specmatic -f specmatic/docker-compose.yml logs --no-color > ci-logs/mock.log
+            cleanup: docker compose -p specmatic -f specmatic/docker-compose.yml down
+          - suite: provider-contract
+            name: Provider contract tests
+            target: specmatic:test
+            report: |
+              specmatic/report
+              specmatic/junit
+            setup: |
+              make apps-network-ensure
+              docker compose -p apps -f apps/docker-compose.yml up -d --build \
+                --wait --wait-timeout 120 mysql-server backend
+              curl --fail --silent --show-error --retry 30 --retry-delay 2 \
+                --retry-all-errors --retry-max-time 120 --max-time 5 \
+                http://localhost:8080/health
+            logs: docker compose -p apps -f apps/docker-compose.yml logs --no-color > ci-logs/backend.log
+            cleanup: docker compose -p apps -f apps/docker-compose.yml down --volumes
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare test environment
+        run: |
+          cp .env.example .env
+          sudo apt-get update
+          sudo apt-get install -y zsh
+
+      - name: Start required services
+        if: matrix.setup != ''
+        run: ${{ matrix.setup }}
+
+      - name: Run tests
+        env:
+          TEST_TARGET: ${{ matrix.target }}
+        run: make "$TEST_TARGET"
+
+      - name: Collect service logs
+        if: always() && matrix.logs != ''
+        run: |
+          mkdir -p ci-logs
+          ${{ matrix.logs }}
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.suite }}-results
+          path: |
+            ${{ matrix.report }}
+            ci-logs/
+          retention-days: 14
+
+      - name: Stop required services
+        if: always() && matrix.cleanup != ''
+        run: ${{ matrix.cleanup }}
