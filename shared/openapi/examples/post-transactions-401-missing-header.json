@@ -10,7 +10,7 @@
   "http-response": {
     "status": 401,
     "body": {
-      "detail": "invalid or missing token"
+      "detail": "$match(exact: invalid or missing token)"
     }
   }
 }

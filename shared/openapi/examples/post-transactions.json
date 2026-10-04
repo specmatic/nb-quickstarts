@@ -1,9 +1,33 @@
 {
+  "before": [
+    {
+      "type": "http",
+      "http-request": {
+        "method": "POST",
+        "path": "/auth/login",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "${SPECMATIC_USERNAME:\"\"}",
+          "password": "${SPECMATIC_PASSWORD:\"\"}"
+        },
+        "baseUrl": "http://backend:8080"
+      },
+      "http-response": {
+        "status": 200,
+        "body": {
+          "token": "(ACCESS_TOKEN:string)",
+          "username": "${SPECMATIC_USERNAME:\"\"}"
+        }
+      }
+    }
+  ],
   "http-request": {
     "method": "POST",
     "path": "/transactions",
     "headers": {
-      "Authorization": "Bearer nb1~ZGVtbw~o8ULBzbbQm6Lrym32BZVUdAXhtlQYQJL1emk2ZCkMqY"
+      "Authorization": "Bearer ${ACCESS_TOKEN:$(ACCESS_TOKEN)}"
     },
     "body": {
       "name": "Specmatic Test Account",
@@ -14,9 +38,9 @@
     "status": 201,
     "body": {
       "id": 1,
-      "name": "Specmatic Test Account",
-      "quantity": 1,
-      "source": "api",
+      "name": "$match(exact: Specmatic Test Account)",
+      "quantity": "$match(exact: 1)",
+      "source": "$match(exact: api)",
       "createdAt": "2024-01-01T00:00:00Z"
     }
   }

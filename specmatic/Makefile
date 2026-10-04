@@ -20,6 +20,8 @@ specmatic:
 	@echo ""
 	@echo "Configuration (.env file):"
 	@echo "  SPECMATIC_MOCK_PORT=9091 # Mock server port"
+	@echo "  SPECMATIC_USERNAME=demo  # Provider fixture login username"
+	@echo "  SPECMATIC_PASSWORD=demo # Provider fixture login password"
 	@echo ""
 	@echo "Endpoints once started:"
 	@echo "  Mock server: http://localhost:$${SPECMATIC_MOCK_PORT:-9091}"

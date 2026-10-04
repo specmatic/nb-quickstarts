@@ -1,26 +1,53 @@
 {
+  "before": [
+    {
+      "type": "http",
+      "http-request": {
+        "method": "POST",
+        "path": "/auth/login",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "${SPECMATIC_USERNAME:\"\"}",
+          "password": "${SPECMATIC_PASSWORD:\"\"}"
+        },
+        "baseUrl": "http://backend:8080"
+      },
+      "http-response": {
+        "status": 200,
+        "body": {
+          "token": "(ACCESS_TOKEN:string)",
+          "username": "${SPECMATIC_USERNAME:\"\"}"
+        }
+      }
+    }
+  ],
   "http-request": {
     "method": "POST",
     "path": "/transactions",
     "headers": {
-      "Authorization": "Bearer nb1~ZGVtbw~o8ULBzbbQm6Lrym32BZVUdAXhtlQYQJL1emk2ZCkMqY"
+      "Authorization": "Bearer ${ACCESS_TOKEN:$(ACCESS_TOKEN)}"
     },
     "body": {}
   },
   "http-response": {
     "status": 422,
     "body": {
-      "detail": [
-        {
-          "type": "missing",
-          "loc": [
-            "body",
-            "name"
-          ],
-          "msg": "Field required",
-          "input": {}
-        }
-      ]
+      "detail": "$match(exact: $(data.validationErrors))"
     }
+  },
+  "data": {
+    "validationErrors": [
+      {
+        "type": "missing",
+        "loc": [
+          "body",
+          "name"
+        ],
+        "msg": "Field required",
+        "input": {}
+      }
+    ]
   }
 }

@@ -7,6 +7,9 @@ services:
   specmatic:
     image: specmatic/enterprise:latest
     working_dir: /app
+    environment: &specmatic-auth
+      SPECMATIC_USERNAME: ${SPECMATIC_USERNAME:-demo}
+      SPECMATIC_PASSWORD: ${SPECMATIC_PASSWORD:-demo}
     volumes:
       # Specmatic always writes its HTML report to build/reports/specmatic/test/html
       # under the working dir, with no flag to redirect it - so mount that
@@ -37,6 +40,9 @@ services:
     image: specmatic/enterprise:latest
     container_name: nb-specmatic-mock
     working_dir: /app
+    environment:
+      <<: *specmatic-auth
+      ACCESS_TOKEN: mock-token
     volumes:
       # Persist the usage reports generated when the mock stops.
       - ./report:/app/build/reports/specmatic

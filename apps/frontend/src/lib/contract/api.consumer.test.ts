@@ -20,7 +20,7 @@ describe("api client against the Specmatic contract mock", () => {
   it("login returns a token and username", async () => {
     const result = await login("demo", "demo");
     expect(result).toEqual({
-      token: "nb1~ZGVtbw~o8ULBzbbQm6Lrym32BZVUdAXhtlQYQJL1emk2ZCkMqY",
+      token: "mock-token",
       username: "demo",
     });
   });

@@ -10,7 +10,7 @@
   "http-response": {
     "status": 401,
     "body": {
-      "detail": "invalid username or password"
+      "detail": "$match(exact: invalid username or password)"
     }
   }
 }
