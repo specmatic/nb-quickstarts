@@ -44,9 +44,9 @@ export const scenarioTesting: LocalizedDocsPage = {
         note:
           "The unit tests require no running services and can be run first: make pytest:test and " +
           "make vitest:test. make all:test runs pytest, Vitest, Playwright and Specmatic in sequence, starting " +
-          "the apps stack beforehand. On GitHub, CI runs static checks only - Python lint, Dockerfile lint and " +
-          "build, shell syntax, frontend type check and compose validation. The tests on this page require the " +
-          "running stack and are run locally.",
+          "the apps stack beforehand. On GitHub, CI runs backend and frontend unit tests and consumer and provider " +
+          "contract tests in four parallel jobs, alongside lint, build, type and configuration checks. Each contract " +
+          "job starts its own required services, and test reports are uploaded as workflow artifacts.",
       },
       {
         heading: "pytest: backend unit tests",
@@ -279,9 +279,9 @@ export const scenarioTesting: LocalizedDocsPage = {
         note:
           "ユニットテストは稼働中のサービスを必要とせず、最初に実行できます: make pytest:test と make vitest:test。" +
           "make all:test は、pytest・Vitest・Playwright・Specmaticを順に実行します(先にappsスタックを起動します)。" +
-          "GitHubのCIが実行するのは静的チェック — Pythonのlint、Dockerfileのlintとビルド、シェルの構文、" +
-          "frontendの型チェック、composeの検証 — のみです。本ページのテストは稼働中のスタックが必要なため、" +
-          "ローカルで実行します。",
+          "GitHubのCIは、lint・ビルド・型・設定のチェックに加え、backendとfrontendのユニットテスト、" +
+          "コンシューマーとプロバイダーのコントラクトテストを4つのジョブで並列実行します。" +
+          "各コントラクトテストのジョブが必要なサービスを起動し、テストレポートをワークフローのartifactとして保存します。",
       },
       {
         heading: "pytest: backendのユニットテスト",

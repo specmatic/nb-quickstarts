@@ -7,26 +7,29 @@
   "http-response": {
     "status": 422,
     "body": {
-      "detail": [
-        {
-          "type": "missing",
-          "loc": [
-            "body",
-            "username"
-          ],
-          "msg": "Field required",
-          "input": {}
-        },
-        {
-          "type": "missing",
-          "loc": [
-            "body",
-            "password"
-          ],
-          "msg": "Field required",
-          "input": {}
-        }
-      ]
+      "detail": "$match(exact: $(data.validationErrors))"
     }
+  },
+  "data": {
+    "validationErrors": [
+      {
+        "type": "missing",
+        "loc": [
+          "body",
+          "username"
+        ],
+        "msg": "Field required",
+        "input": {}
+      },
+      {
+        "type": "missing",
+        "loc": [
+          "body",
+          "password"
+        ],
+        "msg": "Field required",
+        "input": {}
+      }
+    ]
   }
 }

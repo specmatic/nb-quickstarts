@@ -154,7 +154,17 @@ make apps:mysql SQL="SELECT username, email, display_name, language, provider FR
 
 `shared/openapi/openapi.yaml` is the contract — a checked-in, hand-maintained OpenAPI file, not one generated from the route code. It lives in `shared/` (mounted read-only by every module that needs it: the backend, the frontend's `/api-specs`, Specmatic, agentgateway), so none of them has to go through the backend to read it; the backend serves it verbatim at `GET /openapi.json`. That's a deliberate reversal from earlier in this repo's history: a schema generated *from* the implementation can never structurally disagree with it, so a provider verification test run against it can only ever catch behavioral bugs, never real contract drift. A physically separate file makes "does the implementation still honor this contract" a real, failable question — the actual point of Contract-Driven Development, where a Consumer and a Provider both build against one shared file independently. The tradeoff: `openapi.yaml` can drift from what the code actually does if you change one and forget the other — keeping them in sync by hand is the ongoing cost, and `specmatic:test` is what catches it when they diverge.
 
-Specmatic checks the contract from both directions:
+Specmatic checks the contract from both directions. Both services use
+`specmatic/enterprise:latest`. Provider tests generate HTML, JUnit and CTRF reports. CI uploads
+`specmatic/report/test/ctrf/*.json` as the `ctrf-report-provider-contract`
+artifact, including when tests fail.
+
+The mock writes its usage reports when it stops: HTML at
+`specmatic/report/stub/html/index.html` and CTRF at
+`specmatic/report/stub/ctrf/ctrf-report.json`. The consumer CI job stops the
+mock before uploading these reports. The Actions summary displays the
+provider test results only. The mock usage report records HTTP requests,
+while the Vitest report records the consumer test cases.
 
 ```bash
 make apps:up
@@ -166,7 +176,11 @@ make specmatic:mock-up       # mock server built from the same contract (localho
 make vitest:contract-test    # Consumer: apps/frontend's real api.ts calls against the mock, not a mocked fetch or the real backend
 ```
 
-`shared/openapi/examples/` holds 15 checked-in externalized examples (shared by both `specmatic:test` and `specmatic:mock-up`) — a bearer token (the demo token is deterministic: it's an HMAC of `demo` with `TOKEN_SECRET`'s default, so the file stays valid as long as that default isn't overridden), an id that actually exists, and deliberately-invalid requests covering every documented non-2xx response — so Specmatic's own coverage report reaches 100%. They are plain files: edit them by hand next to the contract. See `AGENTS.md`'s Specmatic section for the full story, including a dead end (Specmatic's own security-token config parses correctly but has no effect on generated requests) and why `SPECMATIC_GENERATIVE_TESTS` was tried and rejected in favor of explicit negative examples.
+`shared/openapi/examples/` holds 15 checked-in examples shared by provider tests and the consumer mock. The five requests requiring valid authentication use just-in-time `before` fixtures: `POST http://backend:8080/auth/login` with `${SPECMATIC_USERNAME:""}` / `${SPECMATIC_PASSWORD:""}` credentials captures `(ACCESS_TOKEN:string)`. Their Authorization header is `Bearer ${ACCESS_TOKEN:$(ACCESS_TOKEN)}`: provider tests leave `ACCESS_TOKEN` unset and use the fixture's issued token; the mock sets `ACCESS_TOKEN=mock-token`, matching the contract's mocked login response, without calling the backend. Set `SPECMATIC_USERNAME` and `SPECMATIC_PASSWORD` in the root `.env` to override the Compose defaults (`demo` / `demo`); the account must already exist in the backend. Both containers receive these variables so the shared fixtures can be parsed. This also authenticates the 422 validation cases. Invalid-token and missing-header examples still exercise 401 responses.
+
+Response examples use `$match(exact: ...)` assertions for stable transaction fields, authenticated usernames, saved profile fields, and documented error details. Generated IDs, tokens, and timestamps remain schema-validated. Both provider tests and the mock read these same checked-in examples directly.
+
+Exact mock examples take precedence over partial ones, so the exact 401 fallback would otherwise win over the authenticated transaction example. Environment variable names are case-sensitive; reserve `ACCESS_TOKEN` for the mock service so provider tests exercise real login.
 
 ### Kong: routing to the real backend, or to a contract mock instead
 

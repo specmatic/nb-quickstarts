@@ -5,8 +5,11 @@ services:
   # backend, so what the backend is verified against can't be whatever the
   # backend happens to say about itself.
   specmatic:
-    image: specmatic/specmatic:${SPECMATIC_VERSION:-2.55.1}
+    image: specmatic/enterprise:latest
     working_dir: /app
+    environment: &specmatic-auth
+      SPECMATIC_USERNAME: ${SPECMATIC_USERNAME:-demo}
+      SPECMATIC_PASSWORD: ${SPECMATIC_PASSWORD:-demo}
     volumes:
       # Specmatic always writes its HTML report to build/reports/specmatic/test/html
       # under the working dir, with no flag to redirect it - so mount that
@@ -34,10 +37,15 @@ services:
   # a consumer than always seeing the same realistic-looking values, since
   # it can't accidentally pass by relying on one specific example's data.
   specmatic-mock:
-    image: specmatic/specmatic:${SPECMATIC_VERSION:-2.55.1}
+    image: specmatic/enterprise:latest
     container_name: nb-specmatic-mock
     working_dir: /app
+    environment:
+      <<: *specmatic-auth
+      ACCESS_TOKEN: mock-token
     volumes:
+      # Persist the usage reports generated when the mock stops.
+      - ./report:/app/build/reports/specmatic
       - ../shared:/shared:ro
     ports:
       - "${SPECMATIC_MOCK_PORT:-9091}:9091"

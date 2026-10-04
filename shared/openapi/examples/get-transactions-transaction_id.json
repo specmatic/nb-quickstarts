@@ -7,9 +7,9 @@
     "status": 200,
     "body": {
       "id": 1,
-      "name": "Cash",
-      "quantity": 100000,
-      "source": "seed",
+      "name": "$match(exact: Cash)",
+      "quantity": "$match(exact: 100000)",
+      "source": "$match(exact: seed)",
       "createdAt": "2024-01-01T00:00:00Z"
     }
   }

@@ -6,7 +6,7 @@
   "http-response": {
     "status": 404,
     "body": {
-      "detail": "transaction not found"
+      "detail": "$match(exact: transaction not found)"
     }
   }
 }

@@ -93,8 +93,8 @@ paths:
               examples:
                 demo_login:
                   value:
-                    # Matches the demo token in authenticated external examples.
-                    token: nb1~ZGVtbw~o8ULBzbbQm6Lrym32BZVUdAXhtlQYQJL1emk2ZCkMqY
+                    # Opaque mock credential; provider tests capture the issued token.
+                    token: mock-token
                     username: demo
         "401":
           description: Unknown username or wrong password
@@ -102,10 +102,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPError"
-              examples:
-                bad_credentials:
-                  value:
-                    detail: invalid username or password
         "422":
           description: Validation Error
           content:
@@ -120,7 +116,7 @@ paths:
       # Like POST /transactions: needs a bearer token, which an OpenAPI
       # example can't carry - so no inline examples;
       # specmatic:test covers it with externalized examples that send a real
-      # token (see examples/get-me.json).
+      # token captured by a login fixture (see examples/get-me.json).
       security:
         - HTTPBearer: []
       responses:
@@ -136,10 +132,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPError"
-              examples:
-                unauthorized:
-                  value:
-                    detail: invalid or missing token
   /me/profile:
     put:
       tags: [me]
@@ -169,10 +161,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPError"
-              examples:
-                unauthorized:
-                  value:
-                    detail: invalid or missing token
         "422":
           description: Validation Error
           content:
@@ -220,15 +208,9 @@ paths:
       # Transaction in models.py).
       summary: Record a Transaction
       operationId: create_transaction_transactions_post
-      # Deliberately no requestBody/response `examples:` here, unlike every
-      # other operation - this one needs a real bearer token (see auth.py),
-      # which an OpenAPI example has no way to carry (it's a header, not
-      # part of the body). specmatic:test already covers this operation via
-      # its externalized example (examples/put-me-profile.json), with the
-      # demo user's token;
-      # an inline example here would give Specmatic a second, competing
-      # scenario for the same operation with no way to authenticate it,
-      # always failing with 401.
+      # Authenticated provider examples log in with a before fixture and
+      # substitute the issued token (see examples/post-transactions.json).
+      # Keep body examples external so each scenario carries its auth setup.
       security:
         - HTTPBearer: []
       requestBody:
@@ -250,10 +232,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPError"
-              examples:
-                unauthorized:
-                  value:
-                    detail: invalid or missing token
         "422":
           description: Validation Error
           content:
@@ -297,10 +275,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPError"
-              examples:
-                not_found:
-                  value:
-                    detail: transaction not found
         "422":
           description: Validation Error
           content:
