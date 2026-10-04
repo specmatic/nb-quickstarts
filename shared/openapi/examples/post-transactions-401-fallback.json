@@ -3,7 +3,7 @@
     "method": "POST",
     "path": "/transactions",
     "headers": {
-      "Authorization": "(string)"
+      "Authorization": "Bearer (string)"
     },
     "body": {
       "name": "(string)",
