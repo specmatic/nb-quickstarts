@@ -154,7 +154,17 @@ make apps:mysql SQL="SELECT username, email, display_name, language, provider FR
 
 `shared/openapi/openapi.yaml` is the contract — a checked-in, hand-maintained OpenAPI file, not one generated from the route code. It lives in `shared/` (mounted read-only by every module that needs it: the backend, the frontend's `/api-specs`, Specmatic, agentgateway), so none of them has to go through the backend to read it; the backend serves it verbatim at `GET /openapi.json`. That's a deliberate reversal from earlier in this repo's history: a schema generated *from* the implementation can never structurally disagree with it, so a provider verification test run against it can only ever catch behavioral bugs, never real contract drift. A physically separate file makes "does the implementation still honor this contract" a real, failable question — the actual point of Contract-Driven Development, where a Consumer and a Provider both build against one shared file independently. The tradeoff: `openapi.yaml` can drift from what the code actually does if you change one and forget the other — keeping them in sync by hand is the ongoing cost, and `specmatic:test` is what catches it when they diverge.
 
-Specmatic checks the contract from both directions:
+Specmatic checks the contract from both directions. Both services use
+`specmatic/enterprise:latest`. Provider tests generate HTML, JUnit and CTRF reports. CI uploads
+`specmatic/report/test/ctrf/*.json` as the `ctrf-report-provider-contract`
+artifact, including when tests fail.
+
+The mock writes its usage reports when it stops: HTML at
+`specmatic/report/stub/html/index.html` and CTRF at
+`specmatic/report/stub/ctrf/ctrf-report.json`. The consumer CI job stops the
+mock before uploading these reports and displaying CTRF results in the
+Actions summary. Its usage report records HTTP requests made to the mock,
+while the Vitest report records the consumer test cases.
 
 ```bash
 make apps:up

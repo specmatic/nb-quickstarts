@@ -38,6 +38,8 @@ services:
     container_name: nb-specmatic-mock
     working_dir: /app
     volumes:
+      # Persist the usage reports generated when the mock stops.
+      - ./report:/app/build/reports/specmatic
       - ../shared:/shared:ro
     ports:
       - "${SPECMATIC_MOCK_PORT:-9091}:9091"

@@ -143,6 +143,8 @@ jobs:
             name: Backend unit tests
             target: pytest:test
             report: pytest/report
+            ctrf: ''
+            finalize: ''
             setup: ''
             logs: ''
             cleanup: ''
@@ -150,13 +152,19 @@ jobs:
             name: Frontend unit tests
             target: vitest:test
             report: vitest/report
+            ctrf: ''
+            finalize: ''
             setup: ''
             logs: ''
             cleanup: ''
           - suite: consumer-contract
             name: Consumer contract tests
             target: vitest:contract-test
-            report: vitest/report-contract
+            report: |
+              vitest/report-contract
+              specmatic/report/stub
+            ctrf: specmatic/report/stub/ctrf/*.json
+            finalize: docker compose -p specmatic -f specmatic/docker-compose.yml stop --timeout 30 specmatic-mock
             setup: |
               make specmatic:mock-up
               curl --fail --silent --show-error --retry 30 --retry-delay 2 \
@@ -170,6 +178,8 @@ jobs:
             report: |
               specmatic/report
               specmatic/junit
+            ctrf: specmatic/report/test/ctrf/*.json
+            finalize: ''
             setup: |
               make apps-network-ensure
               docker compose -p apps -f apps/docker-compose.yml up -d --build \
@@ -197,6 +207,11 @@ jobs:
           TEST_TARGET: ${{ matrix.target }}
         run: make "$TEST_TARGET"
 
+      # Mock usage reports are written during graceful shutdown.
+      - name: Finalize reports
+        if: always() && matrix.finalize != ''
+        run: ${{ matrix.finalize }}
+
       - name: Collect service logs
         if: always() && matrix.logs != ''
         run: |
@@ -212,6 +227,22 @@ jobs:
             ${{ matrix.report }}
             ci-logs/
           retention-days: 14
+
+      - name: Upload CTRF report
+        if: always() && matrix.ctrf != ''
+        uses: actions/upload-artifact@v6
+        with:
+          name: ctrf-report-${{ matrix.suite }}
+          path: ${{ matrix.ctrf }}
+          retention-days: 5
+          if-no-files-found: error
+
+      - name: Publish test results
+        if: always() && matrix.ctrf != ''
+        uses: ctrf-io/github-test-reporter@v1
+        with:
+          report-path: ${{ matrix.ctrf }}
+          github-report: true
 
       - name: Stop required services
         if: always() && matrix.cleanup != ''
