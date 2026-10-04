@@ -19,7 +19,7 @@ jobs:
     name: Validate docker-compose
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Use the example environment so Compose can resolve its settings.
       - name: Prepare .env
@@ -39,9 +39,9 @@ jobs:
     name: Lint Python
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -64,7 +64,7 @@ jobs:
     name: Syntax check (zsh)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install zsh
         run: sudo apt-get update && sudo apt-get install -y zsh
       - name: zsh -n
@@ -80,15 +80,18 @@ jobs:
     name: Typecheck frontend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22.23"
 
       - name: Install dependencies
         working-directory: apps/frontend
-        run: npm install
+        run: |
+          # Match the Dockerfile's fix for npm's dependency-resolution bug.
+          npm install -g npm@11
+          npm ci
 
       - name: tsc --noEmit
         working-directory: apps/frontend
@@ -114,7 +117,7 @@ jobs:
             context: kafka/bridge
             tag: nb-quickstarts/kafka-bridge:ci
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Hadolint
         uses: hadolint/hadolint-action@v3.1.0
@@ -177,7 +180,7 @@ jobs:
             logs: docker compose -p apps -f apps/docker-compose.yml logs --no-color > ci-logs/backend.log
             cleanup: docker compose -p apps -f apps/docker-compose.yml down --volumes
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Prepare test environment
         run: |
@@ -202,7 +205,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.suite }}-results
           path: |
