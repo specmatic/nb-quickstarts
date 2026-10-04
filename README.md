@@ -162,8 +162,8 @@ artifact, including when tests fail.
 The mock writes its usage reports when it stops: HTML at
 `specmatic/report/stub/html/index.html` and CTRF at
 `specmatic/report/stub/ctrf/ctrf-report.json`. The consumer CI job stops the
-mock before uploading these reports and displaying CTRF results in the
-Actions summary. Its usage report records HTTP requests made to the mock,
+mock before uploading these reports. The Actions summary displays the
+provider test results only. The mock usage report records HTTP requests,
 while the Vitest report records the consumer test cases.
 
 ```bash

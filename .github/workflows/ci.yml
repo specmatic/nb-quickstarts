@@ -144,6 +144,7 @@ jobs:
             target: pytest:test
             report: pytest/report
             ctrf: ''
+            publish: false
             finalize: ''
             setup: ''
             logs: ''
@@ -153,6 +154,7 @@ jobs:
             target: vitest:test
             report: vitest/report
             ctrf: ''
+            publish: false
             finalize: ''
             setup: ''
             logs: ''
@@ -164,6 +166,7 @@ jobs:
               vitest/report-contract
               specmatic/report/stub
             ctrf: specmatic/report/stub/ctrf/*.json
+            publish: false
             finalize: docker compose -p specmatic -f specmatic/docker-compose.yml stop --timeout 30 specmatic-mock
             setup: |
               make specmatic:mock-up
@@ -179,6 +182,7 @@ jobs:
               specmatic/report
               specmatic/junit
             ctrf: specmatic/report/test/ctrf/*.json
+            publish: true
             finalize: ''
             setup: |
               make apps-network-ensure
@@ -238,11 +242,10 @@ jobs:
           if-no-files-found: error
 
       - name: Publish test results
-        if: always() && matrix.ctrf != ''
+        if: always() && matrix.publish
         uses: ctrf-io/github-test-reporter@v1
         with:
           report-path: ${{ matrix.ctrf }}
-          github-report: true
 
       - name: Stop required services
         if: always() && matrix.cleanup != ''
